@@ -138,6 +138,7 @@ async function writeBrowserResults(results: BrowserResult[]) {
     version: r.packageVersion ?? "-",
     engine: r.engineVersion ?? "-",
     rows: r.rows,
+    startup: (r.metrics as any).startup?.toFixed ? (r.metrics as any).startup.toFixed(1) : ((r.metrics as any).startup != null ? String((r.metrics as any).startup) : '-'),
     open: (r.metrics as any).open?.toFixed ? (r.metrics as any).open.toFixed(1) : String((r.metrics as any).open),
     schema: (r.metrics as any).schema?.toFixed ? (r.metrics as any).schema.toFixed(1) : String((r.metrics as any).schema),
     "insert xN": (r.metrics as any)["insert xN"].toFixed ? (r.metrics as any)["insert xN"].toFixed(1) : String((r.metrics as any)["insert xN"]),

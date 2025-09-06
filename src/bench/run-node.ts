@@ -36,6 +36,7 @@ function parseCli(): NodeBenchOptions {
 async function benchOne(adapter: DBAdapter, dbPath: string, rows: number, storage: "memory"|"disk"): Promise<BenchResult> {
   const info = envInfo();
   const metrics: Record<MetricName, number> = {
+    startup: 0,
     open: 0,
     schema: 0,
     "insert xN": 0,
@@ -46,10 +47,20 @@ async function benchOne(adapter: DBAdapter, dbPath: string, rows: number, storag
   };
 
   const startMs = Date.now();
-  // open
+  // startup (open + first successful request)
+  const tStartup0 = performance.now();
   const t0 = performance.now();
   await adapter.open(dbPath);
   metrics.open = performance.now() - t0;
+  // First trivial query to confirm readiness
+  try {
+    await adapter.all("select 1");
+  } catch (e) {
+    // Fallback per-dialect if needed
+    const probe = adapter.id === "pglite" ? "select 1" : "select 1";
+    await adapter.all(probe);
+  }
+  metrics.startup = performance.now() - tStartup0;
 
   // schema (SQLite vs Postgres dialect differences)
   const schemaSql = adapter.id === "pglite"
@@ -198,6 +209,7 @@ async function main() {
     version: r.packageVersion ?? "-",
     engine: r.engineVersion ?? "-",
     rows: r.rows,
+    startup: r.metrics.startup.toFixed(1),
     open: r.metrics.open.toFixed(1),
     schema: r.metrics.schema.toFixed(1),
     "insert xN": r.metrics["insert xN"].toFixed(1),

@@ -15,36 +15,27 @@ The table below is updated every time you run the benchmarks.
 
 <!-- BENCH_TABLE:START -->
 
-| implementation | platform | storage | version | engine | rows | open | schema | insert xN | select-all | select-lookup | update xN | delete xN |
-| - | - | - | - | - | - | - | - | - | - | - | - | - |
-| better-sqlite3 | node | memory | 12.2.0 | 3.50.2 | 5000 | 5.8 | 4.3 | 24.3 | 3.3 | 5.9 | 2.8 | 1.7 |
-| better-sqlite3 | node | disk | 12.2.0 | 3.50.2 | 5000 | 1.2 | 4.6 | 23.1 | 3.3 | 10.6 | 2.9 | 1.9 |
-| node-sqlite3 | node | memory | 5.1.7 | 3.44.2 | 5000 | 0.1 | 11.6 | 113.5 | 6.5 | 24.8 | 11.7 | 11.1 |
-| node-sqlite3 | node | disk | 5.1.7 | 3.44.2 | 5000 | 0.0 | 5.3 | 109.2 | 6.4 | 27.1 | 11.9 | 11.4 |
-| libsql | node | disk | 0.15.14 | 3.45.1 | 5000 | 15.7 | 6.9 | 92.2 | 16.3 | 27.3 | 9.0 | 8.4 |
-| pglite | node | memory | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 0.6 | 790.3 | 1334.8 | 30.7 | 259.1 | 120.7 | 115.7 |
-| pglite | node | disk | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 0.3 | 479.7 | 1159.0 | 18.1 | 244.6 | 119.8 | 112.2 |
-| sqlite3-wasm | browser | memory | - | 3.44.0 | 5000 | 183.2 | 146.6 | 128.7 | 86.5 | 12.8 | 12.0 | 7.2 |
-| sqlite3-wasm | browser | disk-opfs | - | 3.44.0 | 5000 | 283.1 | 56.6 | 134.6 | 83.3 | 781.3 | 48.1 | 45.5 |
-| libsql-client-wasm | browser | disk | - | 3.44.0 | 5000 | 254.3 | 44.1 | 127.4 | 78.9 | 667.0 | 45.0 | 35.6 |
-| pglite-wasm | browser | memory | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 37.2 | 1319.8 | 25313.5 | 43.2 | 5111.0 | 2420.4 | 2428.1 |
-| pglite-wasm | browser | disk-idb | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 82.8 | 1528.4 | 25421.0 | 36.6 | 4320.6 | 2051.0 | 2188.8 |
-| pglite-wasm | browser | disk-opfs | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 70.8 | 1339.5 | 23212.0 | 32.8 | 4278.5 | 2120.2 | 2171.6 |
+| implementation | platform | storage | version | engine | rows | startup | open | schema | insert xN | select-all | select-lookup | update xN | delete xN |
+| - | - | - | - | - | - | - | - | - | - | - | - | - | - |
+| better-sqlite3 | node | memory | 12.2.0 | 3.50.2 | 5000 | 10.0 | 5.8 | 0.4 | 31.6 | 3.6 | 6.9 | 2.8 | 2.2 |
+| better-sqlite3 | node | disk | 12.2.0 | 3.50.2 | 5000 | 1.5 | 0.7 | 3.0 | 26.4 | 3.8 | 12.4 | 3.0 | 2.2 |
+| node-sqlite3 | node | memory | 5.1.7 | 3.44.2 | 5000 | 4.7 | 0.1 | 0.6 | 134.7 | 7.5 | 27.7 | 13.7 | 14.5 |
+| node-sqlite3 | node | disk | 5.1.7 | 3.44.2 | 5000 | 0.6 | 0.0 | 3.9 | 140.2 | 7.6 | 34.0 | 15.5 | 15.1 |
+| libsql | node | disk | 0.15.14 | 3.45.1 | 5000 | 15.9 | 15.8 | 4.7 | 87.3 | 17.3 | 31.9 | 11.7 | 10.1 |
+| pglite | node | memory | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 821.1 | 0.6 | 6.1 | 1416.9 | 24.3 | 286.9 | 138.3 | 130.4 |
+| pglite | node | disk | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 559.1 | 0.3 | 3.4 | 1356.2 | 24.7 | 282.0 | 136.4 | 127.7 |
+| sqlite3-wasm | browser | memory | - | 3.44.0 | 5000 | 265.5 | 171.4 | 49.3 | 239.7 | 55.1 | 47.0 | 18.7 | 10.9 |
+| sqlite3-wasm | browser | disk-opfs | - | 3.44.0 | 5000 | 285.0 | 284.0 | 45.8 | 255.7 | 51.4 | 784.2 | 58.4 | 56.6 |
+| libsql-client-wasm | browser | disk | - | 3.44.0 | 5000 | 288.3 | 287.4 | 50.5 | 248.9 | 50.8 | 741.6 | 58.9 | 51.3 |
+| pglite-wasm | browser | memory | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 1464.2 | 40.2 | 42.8 | 25469.1 | 42.1 | 4926.7 | 2469.8 | 2459.4 |
+| pglite-wasm | browser | disk-idb | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 1480.9 | 82.7 | 40.7 | 23581.6 | 43.0 | 4793.3 | 2282.3 | 2224.8 |
+| pglite-wasm | browser | disk-opfs | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 1433.3 | 43.0 | 35.4 | 26551.2 | 42.0 | 4846.2 | 2373.1 | 2433.4 |
 
 <!-- BENCH_TABLE:END -->
 
 <!-- BENCH_COMMENT:START -->
 
 Comment (AI):
-
-- Key takeaways: In Node, `better-sqlite3` is consistently the fastest; `node-sqlite3` is 4–5x slower on inserts, and `@libsql/client` lands in between for mixed workloads. In the browser, `sqlite3-wasm` leads among SQLite engines; `libsql-client-wasm` is close on schema and bulk ops but shows higher random lookup costs. `pglite-wasm` provides Postgres semantics but is orders of magnitude slower for write‑heavy phases — it’s best considered for feature needs rather than raw speed.
-- WASM startup: All browser engines pay a non‑trivial open/startup cost versus Node. This is expected (WASM module load + worker spin‑up) and is visible in the `open` metric across browser rows.
-- Disk backends: We now label disk variants explicitly.
-  - `sqlite3-wasm`: `disk-opfs` only (worker + VFS=OPFS).
-  - `libsql-client-wasm`: `disk-opfs` (embedded file driver on OPFS).
-  - `pglite-wasm`: both `disk-idb` and `disk-opfs`. In this run they’re close; OPFS is slightly faster on inserts/lookups, IDBFS can be a touch faster on schema. Differences are within ~5–15% for this dataset.
-- Access patterns: Random primary‑key lookups amplify storage overhead in the browser. Notice how `select-lookup` jumps significantly for OPFS‑backed engines compared to memory.
-- Practical guidance: For pure performance in Node, use `better-sqlite3`. In the browser, `sqlite3-wasm` is the most performant general choice; pick OPFS when you need durability. Use `libsql-client-wasm` if you need its client API/compatibility. Choose `pglite-wasm` when Postgres features (types/extensions/SQL) matter more than throughput.
 
 <!-- BENCH_COMMENT:END -->
 

@@ -1,4 +1,5 @@
 export type MetricName =
+  | "startup"
   | "open"
   | "schema"
   | "insert xN"

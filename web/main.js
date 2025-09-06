@@ -94,9 +94,12 @@ async function runLibsqlClientWasmInline(rows, storage, fsKind = 'opfs') {
   if (!createClient) throw new Error('Failed to load @libsql/client-wasm');
   if (storage === 'memory') throw new Error('libsql-client-wasm: memory mode not supported');
   const url = 'file:bench.db';
+  const tStartup0 = performance.now();
   const t0 = performance.now();
   const client = await createClient({ url });
   const open = performance.now() - t0;
+  try { await client.execute('SELECT 1'); } catch {}
+  const startup = performance.now() - tStartup0;
   async function execMulti(sql) {
     const stmts = sql.split(';').map(s => s.trim()).filter(Boolean);
     for (const s of stmts) await client.execute(s);
@@ -160,7 +163,7 @@ async function runLibsqlClientWasmInline(rows, storage, fsKind = 'opfs') {
     engineVersion,
     rows,
     storage: 'disk-opfs',
-    metrics: { open, schema, 'insert xN': insertN, 'select-all': selectAll, 'select-lookup': selectLookup, 'update xN': updateN, 'delete xN': deleteN },
+    metrics: { startup, open, schema, 'insert xN': insertN, 'select-all': selectAll, 'select-lookup': selectLookup, 'update xN': updateN, 'delete xN': deleteN },
     timestamp: new Date().toISOString(),
     environment: { userAgent: navigator.userAgent, url, fs: 'opfs' }
   };
@@ -200,12 +203,15 @@ async function runLibsqlClientWasmBenchmark(rows, storage, policy, fsKind = 'opf
 async function runPgliteWasmBenchmark(rows, storage, policy, initTimeoutMs, fsKind = 'auto', allowFallback = false) {
   await loadSql();
   const mod = await import('/vendor/@electric-sql/pglite/dist/index.js');
+  const { runBench } = await import('/bench-core.js');
   const PGlite = mod.PGlite || mod.default?.PGlite;
   if (!PGlite) throw new Error('Failed to load @electric-sql/pglite');
   let db;
   let open;
+  let startup;
   const t0 = performance.now();
   console.log('[pglite-wasm] init: storage=%s policy=%s timeout=%sms COI=%s', storage, policy, initTimeoutMs, String(self.crossOriginIsolated));
+  const tStartup0 = performance.now();
   if (storage === 'memory') {
     if (policy === 'off') {
       console.log('[pglite-wasm] workers=off -> using inline PGlite()');
@@ -233,15 +239,19 @@ async function runPgliteWasmBenchmark(rows, storage, policy, initTimeoutMs, fsKi
         }, guard));
         db = await Promise.race([init, watchdog]);
         clearTimeout(stillTimer);
-        open = performance.now() - t0;
-        console.log('[pglite-wasm] worker ready in %dms', open.toFixed(1));
+      open = performance.now() - t0;
+      try { await db.query('SELECT 1'); } catch {}
+      startup = performance.now() - tStartup0;
+      console.log('[pglite-wasm] worker ready in %dms', open.toFixed(1));
       } catch (e) {
         console.warn('[pglite-wasm] worker (memory) init failed/slow:', e);
         if (!allowFallback) throw e;
         console.log('[pglite-wasm] falling back to inline PGlite()');
         db = new PGlite();
-        open = performance.now() - t0;
-        console.log('[pglite-wasm] inline ready in %dms', open.toFixed(1));
+      open = performance.now() - t0;
+      try { await db.query('SELECT 1'); } catch {}
+      startup = performance.now() - tStartup0;
+      console.log('[pglite-wasm] inline ready in %dms', open.toFixed(1));
       }
     }
   } else {
@@ -281,8 +291,10 @@ async function runPgliteWasmBenchmark(rows, storage, policy, initTimeoutMs, fsKi
           }
         }
         try { if (db.waitReady) { console.log('[pglite-wasm] waiting waitReady()'); await db.waitReady; console.log('[pglite-wasm] waitReady() done'); } } catch (e) { console.warn('[pglite-wasm] waitReady failed:', e); }
-        open = performance.now() - t0;
-        console.log('[pglite-wasm] inline (disk) ready in %dms', open.toFixed(1));
+      open = performance.now() - t0;
+      try { await db.query('SELECT 1'); } catch {}
+      startup = performance.now() - tStartup0;
+      console.log('[pglite-wasm] inline (disk) ready in %dms', open.toFixed(1));
       } catch (e) {
         console.error('[pglite-wasm] inline (disk) init failed:', e);
         throw e;
@@ -307,6 +319,9 @@ async function runPgliteWasmBenchmark(rows, storage, policy, initTimeoutMs, fsKi
         db = await Promise.race([init, watchdog]);
         try { if (db.waitReady) { console.log('[pglite-wasm] waiting waitReady()'); await db.waitReady; console.log('[pglite-wasm] waitReady() done'); } } catch (e) { console.warn('[pglite-wasm] waitReady failed:', e); }
         open = performance.now() - t0;
+        try { await db.waitReady; } catch {}
+        try { await db.query('SELECT 1'); } catch {}
+        startup = performance.now() - tStartup0;
         console.log('[pglite-wasm] worker (disk) ready in %dms', open.toFixed(1));
       } catch (e) {
         console.warn('[pglite-wasm] worker (disk) init failed/slow:', e);
@@ -335,6 +350,8 @@ async function runPgliteWasmBenchmark(rows, storage, policy, initTimeoutMs, fsKi
           }
           try { if (db.waitReady) { console.log('[pglite-wasm] waiting waitReady()'); await db.waitReady; console.log('[pglite-wasm] waitReady() done'); } } catch (e2) { console.warn('[pglite-wasm] waitReady failed:', e2); }
           open = performance.now() - t0;
+          try { await db.query('SELECT 1'); } catch {}
+          startup = performance.now() - tStartup0;
           console.log('[pglite-wasm] inline (disk) ready in %dms', open.toFixed(1));
         } catch (e2) {
           console.error('[pglite-wasm] inline (disk) init failed:', e2);
@@ -344,106 +361,18 @@ async function runPgliteWasmBenchmark(rows, storage, policy, initTimeoutMs, fsKi
     }
   }
 
-  const schemaSQL = `${SQL.postgres.schema};\n${SQL.postgres.truncate};`;
-  const t1 = performance.now();
-  // Execute statements sequentially (simple splitter)
-  const schemaParts = schemaSQL.split(';').map(s => s.trim()).filter(Boolean);
-  console.log('[pglite-wasm] schema: %d statements', schemaParts.length);
-  for (let i = 0; i < schemaParts.length; i++) {
-    const s = schemaParts[i];
-    const ts = performance.now();
-    try {
-      await db.query(s);
-      console.log('[pglite-wasm] schema stmt %d ok in %dms', i + 1, (performance.now() - ts).toFixed(1));
-    } catch (e) {
-      console.error('[pglite-wasm] schema stmt %d failed:', i + 1, e, s.slice(0, 120));
-      throw e;
-    }
-  }
-  const schema = performance.now() - t1;
-  console.log('[pglite-wasm] schema done in %dms', schema.toFixed(1));
-
-  const t2 = performance.now();
-  console.log('[pglite-wasm] insert: BEGIN');
-  await db.query('BEGIN');
-  try {
-    const logEvery = Math.max(1, Math.floor(rows / 10));
-    for (let i = 0; i < rows; i++) {
-      const name = `name_${i}`;
-      const value = i % 100;
-      const created = Date.now();
-      await db.query('INSERT INTO bench (name, value, created_at) VALUES ($1, $2, $3)', [name, value, created]);
-      if ((i + 1) % logEvery === 0) console.log('[pglite-wasm] insert progress %d/%d', i + 1, rows);
-    }
-    await db.query('COMMIT');
-    console.log('[pglite-wasm] insert: COMMIT');
-  } catch (e) {
-    console.warn('[pglite-wasm] insert failed, ROLLBACK');
-    await db.query('ROLLBACK');
-    throw e;
-  }
-  const insertN = performance.now() - t2;
-  console.log('[pglite-wasm] insert xN done in %dms', insertN.toFixed(1));
-
-  const t3 = performance.now();
-  console.log('[pglite-wasm] select-all');
-  const all = await db.query('SELECT * FROM bench');
-  void all.rows?.length;
-  const selectAll = performance.now() - t3;
-  console.log('[pglite-wasm] select-all done in %dms', selectAll.toFixed(1));
-
-  const lookups = Math.min(1000, rows);
-  const ids = Array.from({ length: lookups }, () => 1 + Math.floor(Math.random() * rows));
-  const t4 = performance.now();
-  console.log('[pglite-wasm] select-lookup x%d', lookups);
-  for (const id of ids) {
-    await db.query('SELECT * FROM bench WHERE id = $1', [id]);
-  }
-  const selectLookup = performance.now() - t4;
-  console.log('[pglite-wasm] select-lookup done in %dms', selectLookup.toFixed(1));
-
-  const updates = Math.max(1, Math.floor(rows / 10));
-  const t5 = performance.now();
-  console.log('[pglite-wasm] update x%d: BEGIN', updates);
-  await db.query('BEGIN');
-  try {
-    for (let i = 0; i < updates; i++) {
-      const id = 1 + Math.floor(Math.random() * rows);
-      const nv = Math.random() * 1000;
-      await db.query('UPDATE bench SET value = $1 WHERE id = $2', [nv, id]);
-    }
-    await db.query('COMMIT');
-    console.log('[pglite-wasm] update: COMMIT');
-  } catch (e) {
-    console.warn('[pglite-wasm] update failed, ROLLBACK');
-    await db.query('ROLLBACK');
-    throw e;
-  }
-  const updateN = performance.now() - t5;
-  console.log('[pglite-wasm] update xN done in %dms', updateN.toFixed(1));
-
-  const deletes = updates;
-  const t6 = performance.now();
-  console.log('[pglite-wasm] delete x%d: BEGIN', deletes);
-  await db.query('BEGIN');
-  try {
-    for (let i = 0; i < deletes; i++) {
-      const id = 1 + Math.floor(Math.random() * rows);
-      await db.query('DELETE FROM bench WHERE id = $1', [id]);
-    }
-    await db.query('COMMIT');
-    console.log('[pglite-wasm] delete: COMMIT');
-  } catch (e) {
-    console.warn('[pglite-wasm] delete failed, ROLLBACK');
-    await db.query('ROLLBACK');
-    throw e;
-  }
-  const deleteN = performance.now() - t6;
-  console.log('[pglite-wasm] delete xN done in %dms', deleteN.toFixed(1));
-
-  if (storage === 'disk' && db.syncToFs) {
-    try { console.log('[pglite-wasm] final syncToFs'); await db.syncToFs(); } catch (e) { console.warn('[pglite-wasm] final syncToFs failed:', e); }
-  }
+  const adapter = {
+    id: 'pglite-wasm',
+    async open() { /* already opened */ },
+    async exec(sql) { const parts = sql.split(';').map(s=>s.trim()).filter(Boolean); for (const s of parts) await db.query(s); },
+    async run(sql, params = []) { await db.query(sql, params); },
+    async all(sql, params = []) { const r = await db.query(sql, params); return (r.rows||[]); },
+    async beginTransaction() { await db.query('BEGIN'); },
+    async commitTransaction() { await db.query('COMMIT'); },
+    async rollbackTransaction() { await db.query('ROLLBACK'); },
+  };
+  const dialect = { schemaSql: `${SQL.postgres.schema}\n${SQL.postgres.truncate}`, queries: SQL.queriesPg };
+  const { metrics: core } = await runBench(adapter, dialect, rows);
 
   let engineVersion = 'unknown';
   try {
@@ -458,7 +387,7 @@ async function runPgliteWasmBenchmark(rows, storage, policy, initTimeoutMs, fsKi
     engineVersion,
     rows,
     storage: storage === 'disk' && fsKind ? `${storage}-${fsKind}` : storage,
-    metrics: { open, schema, 'insert xN': insertN, 'select-all': selectAll, 'select-lookup': selectLookup, 'update xN': updateN, 'delete xN': deleteN },
+    metrics: { ...core, open, startup: startup ?? open },
     timestamp: new Date().toISOString(),
     environment: { userAgent: navigator.userAgent, fs: fsKind, workers: policy }
   };

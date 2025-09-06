@@ -94,6 +94,18 @@ async function main() {
           console.log(`[browser ${engine} ${storage}${fsKind?'-'+fsKind:''}] ${status}`);
         } catch (e) {
           console.error(`[browser ${engine} ${storage}${fsKind?'-'+fsKind:''}] failed:`, e);
+          // One retry for flaky worker/OPFS cases (notably pglite-wasm disk-opfs)
+          const shouldRetry = engine === 'pglite-wasm' && storage === 'disk' && fsKind === 'opfs';
+          if (shouldRetry) {
+            console.log(`[browser ${engine} ${storage}-opfs] retrying once after failure…`);
+            try {
+              await sleep(500);
+              status = await runWithPuppeteer(mod, url, timeout, headed);
+              console.log(`[browser ${engine} ${storage}-opfs] retry succeeded: ${status}`);
+            } catch (e2) {
+              console.error(`[browser ${engine} ${storage}-opfs] retry failed:`, e2);
+            }
+          }
         }
         // small delay between runs
         await sleep(250);
