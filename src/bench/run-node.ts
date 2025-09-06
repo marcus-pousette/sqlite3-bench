@@ -1,0 +1,223 @@
+import fs from "node:fs";
+import path from "node:path";
+import { performance } from "node:perf_hooks";
+import { betterSqlite3Adapter } from "./adapters/betterSqlite3.ts";
+import { nodeSqlite3Adapter } from "./adapters/nodeSqlite3.ts";
+import { libsqlAdapter } from "./adapters/libsql.ts";
+import { pgliteAdapter } from "./adapters/pglite.ts";
+import { envInfo, formatMarkdownTable, updateReadmeTable, clearReadmeComment } from "./util.ts";
+// Load unified SQL definitions with types
+type SqlConfig = {
+  sqlite: { preamble: string; schema: string; truncate: string };
+  postgres: { schema: string; truncate: string };
+  queries: { insert: string; selectAll: string; selectById: string; update: string; delete: string };
+  queriesPg: { insert: string; selectAll: string; selectById: string; update: string; delete: string };
+};
+const sql: SqlConfig = JSON.parse(fs.readFileSync(path.resolve("assets/sql.json"), "utf8")) as SqlConfig;
+import type { BenchResult, DBAdapter, MetricName, NodeBenchOptions } from "./types.ts";
+
+const DEFAULT_ROWS = 5_000;
+const DEFAULT_STORAGE: "memory" | "disk" | "both" = "both";
+
+function parseCli(): NodeBenchOptions {
+  const args = new Map<string, string>();
+  for (let i = 2; i < process.argv.length; i++) {
+    const a = process.argv[i];
+    const [k, v] = a.includes("=") ? a.split("=", 2) : [a, "true"];
+    args.set(k.replace(/^--/, ""), v);
+  }
+  const rows = Number(args.get("rows") ?? DEFAULT_ROWS);
+  const dbDir = args.get("dbDir") ?? "tmp";
+  const impls = args.get("impls")?.split(",").map((s) => s.trim());
+  const storage = (args.get("storage") as "memory" | "disk" | "both" | undefined) ?? DEFAULT_STORAGE;
+  return { rows, dbDir, implementations: impls, storage };
+}
+
+async function benchOne(adapter: DBAdapter, dbPath: string, rows: number, storage: "memory"|"disk"): Promise<BenchResult> {
+  const info = envInfo();
+  const metrics: Record<MetricName, number> = {
+    open: 0,
+    schema: 0,
+    "insert xN": 0,
+    "select-all": 0,
+    "select-lookup": 0,
+    "update xN": 0,
+    "delete xN": 0,
+  };
+
+  const startMs = Date.now();
+  // open
+  const t0 = performance.now();
+  await adapter.open(dbPath);
+  metrics.open = performance.now() - t0;
+
+  // schema (SQLite vs Postgres dialect differences)
+  const schemaSql = adapter.id === "pglite"
+    ? `${sql.postgres.schema}\n${sql.postgres.truncate}`
+    : `${sql.sqlite.preamble}\n${sql.sqlite.schema}\n${sql.sqlite.truncate}`;
+  const q = adapter.id === "pglite" ? sql.queriesPg : sql.queries;
+  const t1 = performance.now();
+  await adapter.exec(schemaSql);
+  metrics.schema = performance.now() - t1;
+
+  // insert N rows in a transaction
+  const t2 = performance.now();
+  if (adapter.beginTransaction) await adapter.beginTransaction();
+  try {
+    for (let i = 0; i < rows; i++) {
+      const name = `name_${i}`;
+      const value = i % 100;
+      const created = Date.now();
+      await adapter.run(q.insert, [name, value, created]);
+    }
+    if (adapter.commitTransaction) await adapter.commitTransaction();
+  } catch (e) {
+    if (adapter.rollbackTransaction) await adapter.rollbackTransaction();
+    throw e;
+  }
+  metrics["insert xN"] = performance.now() - t2;
+
+  // select-all
+  const t3 = performance.now();
+  const all = await adapter.all(q.selectAll);
+  void all.length; // prevent elision
+  metrics["select-all"] = performance.now() - t3;
+
+  // select-lookup: 1000 random primary key lookups
+  const lookups = Math.min(1000, rows);
+  const ids = Array.from({ length: lookups }, () => 1 + Math.floor(Math.random() * rows));
+  const t4 = performance.now();
+  for (const id of ids) {
+    const one = await adapter.all(q.selectById, [id]);
+    void one[0];
+  }
+  metrics["select-lookup"] = performance.now() - t4;
+
+  // update N/10 rows
+  const updates = Math.max(1, Math.floor(rows / 10));
+  const t5 = performance.now();
+  if (adapter.beginTransaction) await adapter.beginTransaction();
+  try {
+    for (let i = 0; i < updates; i++) {
+      const id = 1 + Math.floor(Math.random() * rows);
+      const nv = Math.random() * 1000;
+      await adapter.run(q.update, [nv, id]);
+    }
+    if (adapter.commitTransaction) await adapter.commitTransaction();
+  } catch (e) {
+    if (adapter.rollbackTransaction) await adapter.rollbackTransaction();
+    throw e;
+  }
+  metrics["update xN"] = performance.now() - t5;
+
+  // delete N/10 rows
+  const deletes = updates;
+  const t6 = performance.now();
+  if (adapter.beginTransaction) await adapter.beginTransaction();
+  try {
+    for (let i = 0; i < deletes; i++) {
+      const id = 1 + Math.floor(Math.random() * rows);
+      await adapter.run(q.delete, [id]);
+    }
+    if (adapter.commitTransaction) await adapter.commitTransaction();
+  } catch (e) {
+    if (adapter.rollbackTransaction) await adapter.rollbackTransaction();
+    throw e;
+  }
+  metrics["delete xN"] = performance.now() - t6;
+
+  const pkg = adapter.getPackageVersion?.();
+  const eng = adapter.getEngineVersion ? await adapter.getEngineVersion() : undefined;
+  await adapter.close();
+
+  return {
+    implementation: adapter.id,
+    packageVersion: pkg,
+    engineVersion: eng,
+    environment: info,
+    rows,
+    storage,
+    metrics,
+    timestamp: new Date(startMs).toISOString(),
+  };
+}
+
+function adapters(): DBAdapter[] {
+  return [betterSqlite3Adapter(), nodeSqlite3Adapter(), libsqlAdapter(), pgliteAdapter()];
+}
+
+async function main() {
+  const opts = parseCli();
+  const outDir = path.resolve("results");
+  await ensureDir(outDir);
+  const dbDir = path.resolve(opts.dbDir ?? "tmp");
+  await ensureDir(dbDir);
+
+  const selected = adapters().filter((a) => (!opts.implementations || opts.implementations.includes(a.id)) && a.detectInstalled());
+  if (!selected.length) {
+    console.warn("No implementations detected. Install any of: better-sqlite3, sqlite3, @libsql/client");
+    process.exitCode = 1;
+    return;
+  }
+  const results: BenchResult[] = [];
+  for (const a of selected) {
+    const storages: ("memory"|"disk")[] = (opts.storage === "both" ? ["memory","disk"] : [opts.storage as ("memory"|"disk")]);
+    for (const s of storages) {
+      let dbPath: string;
+      if (a.id === "libsql") {
+        const base = path.join(dbDir, `${a.id}.db`);
+        if (s === "memory") {
+          console.warn("[skip] libsql (memory): @libsql/client file driver does not support in-memory URLs");
+          continue;
+        }
+        dbPath = `file:${base}`;
+      } else if (a.id === "node-sqlite3" || a.id === "better-sqlite3") {
+        dbPath = s === "memory" ? ":memory:" : path.join(dbDir, `${a.id}.db`);
+      } else {
+        dbPath = path.join(dbDir, `${a.id}.db`);
+      }
+      try {
+        const r = await benchOne(a, dbPath, opts.rows, s);
+        results.push(r);
+        console.log(`[ok] ${a.id} (${s})`);
+      } catch (e) {
+        console.error(`[fail] ${a.id} (${s}):`, e instanceof Error ? e.message : String(e));
+      }
+    }
+  }
+
+  // Persist JSON
+  const jsonPath = path.join(outDir, `node-latest.json`);
+  await fs.promises.writeFile(jsonPath, JSON.stringify(results, null, 2));
+
+  // Generate table
+  const rows = results.map((r) => ({
+    implementation: r.implementation,
+    platform: 'node',
+    storage: r.storage ?? "-",
+    version: r.packageVersion ?? "-",
+    engine: r.engineVersion ?? "-",
+    rows: r.rows,
+    open: r.metrics.open.toFixed(1),
+    schema: r.metrics.schema.toFixed(1),
+    "insert xN": r.metrics["insert xN"].toFixed(1),
+    "select-all": r.metrics["select-all"].toFixed(1),
+    "select-lookup": r.metrics["select-lookup"].toFixed(1),
+    "update xN": r.metrics["update xN"].toFixed(1),
+    "delete xN": r.metrics["delete xN"].toFixed(1),
+  }));
+  const table = rows.length ? formatMarkdownTable(rows as any) : "No results.";
+  updateReadmeTable(table);
+  // Clear AI comment on every run until explicitly set again
+  clearReadmeComment();
+  console.log(`Updated README.md with ${results.length} result(s).`);
+}
+
+function ensureDir(p: string) {
+  return fs.promises.mkdir(p, { recursive: true });
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

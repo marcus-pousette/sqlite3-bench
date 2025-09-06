@@ -1,0 +1,32 @@
+{
+  "name": "sqlite3-bench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p .",
+    "bench:node": "node --loader ts-node/esm src/bench/run-node.ts",
+    "serve:browser": "tsx src/web/serve.ts",
+    "bench:browser": "tsx src/web/serve.ts --auto --once",
+    "bench:browser:auto": "node --loader ts-node/esm src/web/headless.ts",
+    "bench:reset": "node --loader ts-node/esm src/bench/reset.ts",
+    "bench:all": "node --loader ts-node/esm src/bench/run-all.ts",
+    "bench:comment": "node --loader ts-node/esm src/bench/set-comment.ts",
+    "bench:debug": "node --loader ts-node/esm src/bench/run-all.ts --rows=10 --timeout=10000"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.7.5",
+    "puppeteer": "^24.19.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.3.7",
+    "@libsql/client": "^0.15.14",
+    "@libsql/client-wasm": "^0.15.14",
+    "better-sqlite3": "^12.2.0",
+    "sqlite3": "^5.1.7"
+  }
+}

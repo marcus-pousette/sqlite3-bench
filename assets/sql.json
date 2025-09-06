@@ -1,0 +1,25 @@
+{
+  "sqlite": {
+    "preamble": "PRAGMA journal_mode = WAL;\nPRAGMA synchronous = NORMAL;",
+    "schema": "CREATE TABLE IF NOT EXISTS bench (\n  id INTEGER PRIMARY KEY,\n  name TEXT NOT NULL,\n  value REAL NOT NULL,\n  created_at INTEGER NOT NULL\n);\nCREATE INDEX IF NOT EXISTS idx_bench_value ON bench(value);",
+    "truncate": "DELETE FROM bench;"
+  },
+  "postgres": {
+    "schema": "CREATE TABLE IF NOT EXISTS bench (\n  id SERIAL PRIMARY KEY,\n  name TEXT NOT NULL,\n  value DOUBLE PRECISION NOT NULL,\n  created_at BIGINT NOT NULL\n);\nCREATE INDEX IF NOT EXISTS idx_bench_value ON bench(value);",
+    "truncate": "TRUNCATE bench;"
+  },
+  "queries": {
+    "insert": "INSERT INTO bench (name, value, created_at) VALUES (?, ?, ?)",
+    "selectAll": "SELECT * FROM bench",
+    "selectById": "SELECT * FROM bench WHERE id = ?",
+    "update": "UPDATE bench SET value = ? WHERE id = ?",
+    "delete": "DELETE FROM bench WHERE id = ?"
+  },
+  "queriesPg": {
+    "insert": "INSERT INTO bench (name, value, created_at) VALUES ($1, $2, $3)",
+    "selectAll": "SELECT * FROM bench",
+    "selectById": "SELECT * FROM bench WHERE id = $1",
+    "update": "UPDATE bench SET value = $1 WHERE id = $2",
+    "delete": "DELETE FROM bench WHERE id = $1"
+  }
+}
