@@ -37,6 +37,15 @@ The table below is updated every time you run the benchmarks.
 
 Comment (AI):
 
+- Node winners: better-sqlite3 is still the baseline leader. Inserts complete in ~26–32 ms with tiny open/startup times. node-sqlite3 is 4–5× slower on write-heavy phases; @libsql/client (embedded) is in between with higher open/startup overhead (~16 ms) but decent mixed-read/write performance.
+- Startup matters in browsers: sqlite3‑wasm and libsql‑client‑wasm both spend ~265–290 ms on startup before the first query. PGlite’s startup is much heavier (~1.4–1.5 s) due to the larger WASM and initialization work.
+- Browser SQLite (OPFS vs memory): inserts are similar across memory (~240 ms) and disk‑OPFS (~256 ms), but random lookups on OPFS are expensive (select‑lookup ~780 ms vs ~47–55 ms in memory). This is the dominant persistence cost in these workloads.
+- libsql‑client‑wasm (disk‑OPFS): closely tracks sqlite3‑wasm on schema and bulk ops, with similar select‑lookup costs (~742 ms) reflecting OPFS random I/O overhead. Use it when you want the libsql client API with embedded durability.
+- PGlite (Postgres‑in‑WASM): in Node, it’s much slower than SQLite (insert ~1.3–1.4 s) but still an order of magnitude faster than the browser runs. In the browser, insert xN lands in the 23–27 s range and select‑lookup ~4.8–4.9 s (both IDB and OPFS are in the same ballpark). This reflects Postgres protocol/engine complexity plus browser filesystem sync costs. Choose PGlite for Postgres features/compatibility, not raw throughput.
+- Takeaways:
+  - For Node: better‑sqlite3 for speed; @libsql/client if you need its client semantics; PGlite only if you need Postgres semantics in Node.
+  - For Browser: sqlite3‑wasm (memory) for fastest reads; OPFS for durability with a large random‑lookup penalty. libsql‑client‑wasm (OPFS) performance is comparable to sqlite3‑wasm (OPFS). PGlite is feature‑rich but write/lookup heavy workloads are significantly slower.
+
 <!-- BENCH_COMMENT:END -->
 
 ## Running The Benchmarks
