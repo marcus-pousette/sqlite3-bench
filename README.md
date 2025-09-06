@@ -37,6 +37,15 @@ The table below is updated every time you run the benchmarks.
 
 Comment (AI):
 
+- Key takeaways: In Node, `better-sqlite3` is consistently the fastest; `node-sqlite3` is 4–5x slower on inserts, and `@libsql/client` lands in between for mixed workloads. In the browser, `sqlite3-wasm` leads among SQLite engines; `libsql-client-wasm` is close on schema and bulk ops but shows higher random lookup costs. `pglite-wasm` provides Postgres semantics but is orders of magnitude slower for write‑heavy phases — it’s best considered for feature needs rather than raw speed.
+- WASM startup: All browser engines pay a non‑trivial open/startup cost versus Node. This is expected (WASM module load + worker spin‑up) and is visible in the `open` metric across browser rows.
+- Disk backends: We now label disk variants explicitly.
+  - `sqlite3-wasm`: `disk-opfs` only (worker + VFS=OPFS).
+  - `libsql-client-wasm`: `disk-opfs` (embedded file driver on OPFS).
+  - `pglite-wasm`: both `disk-idb` and `disk-opfs`. In this run they’re close; OPFS is slightly faster on inserts/lookups, IDBFS can be a touch faster on schema. Differences are within ~5–15% for this dataset.
+- Access patterns: Random primary‑key lookups amplify storage overhead in the browser. Notice how `select-lookup` jumps significantly for OPFS‑backed engines compared to memory.
+- Practical guidance: For pure performance in Node, use `better-sqlite3`. In the browser, `sqlite3-wasm` is the most performant general choice; pick OPFS when you need durability. Use `libsql-client-wasm` if you need its client API/compatibility. Choose `pglite-wasm` when Postgres features (types/extensions/SQL) matter more than throughput.
+
 <!-- BENCH_COMMENT:END -->
 
 ## Running The Benchmarks
