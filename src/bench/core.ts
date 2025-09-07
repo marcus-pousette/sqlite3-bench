@@ -1,10 +1,23 @@
-// Shared browser bench core to mirror Node's sequence.
-// Expects an adapter with: id, open(), exec(sql), run(sql, params), all(sql, params),
-// and optional beginTransaction/commitTransaction/rollbackTransaction.
-// Returns { metrics, engineVersion? } where metrics matches Node names.
+import type { DBAdapter, MetricName } from './types.ts';
 
-export async function runBench(adapter, dialect, rows) {
-  const metrics = {
+export type BenchDialect = {
+  schemaSql: string;
+  queries: {
+    insert: string;
+    selectAll: string;
+    selectById: string;
+    update: string;
+    delete: string;
+  };
+};
+
+export async function runAfterOpen(
+  adapter: DBAdapter,
+  dialect: BenchDialect,
+  rows: number,
+): Promise<Record<MetricName, number>> {
+  const metrics: Record<MetricName, number> = {
+    startup: 0,
     open: 0,
     schema: 0,
     'insert xN': 0,
@@ -14,15 +27,9 @@ export async function runBench(adapter, dialect, rows) {
     'delete xN': 0,
   };
 
-  // open
-  const t0 = performance.now();
-  await adapter.open();
-  metrics.open = performance.now() - t0;
-
   // schema
-  const schemaSql = dialect.schemaSql;
   const t1 = performance.now();
-  await adapter.exec(schemaSql);
+  await adapter.exec(dialect.schemaSql);
   metrics.schema = performance.now() - t1;
 
   // insert N rows in a transaction
@@ -91,11 +98,19 @@ export async function runBench(adapter, dialect, rows) {
   }
   metrics['delete xN'] = performance.now() - t6;
 
+  return metrics;
+}
+
+// Browser-friendly wrappers for parity with existing imports
+export async function runBench(adapter: any, dialect: BenchDialect, rows: number) {
+  const metrics = await runAfterOpen(adapter as any, dialect, rows);
   return { metrics };
 }
 
-// Back-compat convenience for sqlite
-export async function runSqliteBench(adapter, SQL, rows) {
-  const dialect = { schemaSql: `${SQL.sqlite.schema}\n${SQL.sqlite.truncate}`, queries: SQL.queries };
+export async function runSqliteBench(adapter: any, SQL: any, rows: number) {
+  const dialect: BenchDialect = {
+    schemaSql: `${SQL.sqlite.schema}\n${SQL.sqlite.truncate}`,
+    queries: SQL.queries,
+  };
   return runBench(adapter, dialect, rows);
 }

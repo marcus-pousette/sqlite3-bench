@@ -15,6 +15,7 @@ type SqlConfig = {
 };
 const sql: SqlConfig = JSON.parse(fs.readFileSync(path.resolve("assets/sql.json"), "utf8")) as SqlConfig;
 import type { BenchResult, DBAdapter, MetricName, NodeBenchOptions } from "./types.ts";
+import { runAfterOpen, type BenchDialect } from './core.ts';
 
 const DEFAULT_ROWS = 5_000;
 const DEFAULT_STORAGE: "memory" | "disk" | "both" = "both";
@@ -62,80 +63,17 @@ async function benchOne(adapter: DBAdapter, dbPath: string, rows: number, storag
   }
   metrics.startup = performance.now() - tStartup0;
 
-  // schema (SQLite vs Postgres dialect differences)
-  const schemaSql = adapter.id === "pglite"
-    ? `${sql.postgres.schema}\n${sql.postgres.truncate}`
-    : `${sql.sqlite.preamble}\n${sql.sqlite.schema}\n${sql.sqlite.truncate}`;
-  const q = adapter.id === "pglite" ? sql.queriesPg : sql.queries;
-  const t1 = performance.now();
-  await adapter.exec(schemaSql);
-  metrics.schema = performance.now() - t1;
-
-  // insert N rows in a transaction
-  const t2 = performance.now();
-  if (adapter.beginTransaction) await adapter.beginTransaction();
-  try {
-    for (let i = 0; i < rows; i++) {
-      const name = `name_${i}`;
-      const value = i % 100;
-      const created = Date.now();
-      await adapter.run(q.insert, [name, value, created]);
-    }
-    if (adapter.commitTransaction) await adapter.commitTransaction();
-  } catch (e) {
-    if (adapter.rollbackTransaction) await adapter.rollbackTransaction();
-    throw e;
-  }
-  metrics["insert xN"] = performance.now() - t2;
-
-  // select-all
-  const t3 = performance.now();
-  const all = await adapter.all(q.selectAll);
-  void all.length; // prevent elision
-  metrics["select-all"] = performance.now() - t3;
-
-  // select-lookup: 1000 random primary key lookups
-  const lookups = Math.min(1000, rows);
-  const ids = Array.from({ length: lookups }, () => 1 + Math.floor(Math.random() * rows));
-  const t4 = performance.now();
-  for (const id of ids) {
-    const one = await adapter.all(q.selectById, [id]);
-    void one[0];
-  }
-  metrics["select-lookup"] = performance.now() - t4;
-
-  // update N/10 rows
-  const updates = Math.max(1, Math.floor(rows / 10));
-  const t5 = performance.now();
-  if (adapter.beginTransaction) await adapter.beginTransaction();
-  try {
-    for (let i = 0; i < updates; i++) {
-      const id = 1 + Math.floor(Math.random() * rows);
-      const nv = Math.random() * 1000;
-      await adapter.run(q.update, [nv, id]);
-    }
-    if (adapter.commitTransaction) await adapter.commitTransaction();
-  } catch (e) {
-    if (adapter.rollbackTransaction) await adapter.rollbackTransaction();
-    throw e;
-  }
-  metrics["update xN"] = performance.now() - t5;
-
-  // delete N/10 rows
-  const deletes = updates;
-  const t6 = performance.now();
-  if (adapter.beginTransaction) await adapter.beginTransaction();
-  try {
-    for (let i = 0; i < deletes; i++) {
-      const id = 1 + Math.floor(Math.random() * rows);
-      await adapter.run(q.delete, [id]);
-    }
-    if (adapter.commitTransaction) await adapter.commitTransaction();
-  } catch (e) {
-    if (adapter.rollbackTransaction) await adapter.rollbackTransaction();
-    throw e;
-  }
-  metrics["delete xN"] = performance.now() - t6;
+  // schema + workload via shared core
+  const dialect: BenchDialect = adapter.id === 'pglite'
+    ? { schemaSql: `${sql.postgres.schema}\n${sql.postgres.truncate}`, queries: sql.queriesPg }
+    : { schemaSql: `${sql.sqlite.preamble}\n${sql.sqlite.schema}\n${sql.sqlite.truncate}`, queries: sql.queries };
+  const core = await runAfterOpen(adapter, dialect, rows);
+  metrics.schema = core.schema;
+  metrics['insert xN'] = core['insert xN'];
+  metrics['select-all'] = core['select-all'];
+  metrics['select-lookup'] = core['select-lookup'];
+  metrics['update xN'] = core['update xN'];
+  metrics['delete xN'] = core['delete xN'];
 
   const pkg = adapter.getPackageVersion?.();
   const eng = adapter.getEngineVersion ? await adapter.getEngineVersion() : undefined;

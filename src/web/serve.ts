@@ -4,6 +4,7 @@ import path from "node:path";
 import url from "node:url";
 import { formatMarkdownTable, updateReadmeTable, clearReadmeComment } from "../bench/util.ts";
 import type { BenchResult } from "../bench/types.ts";
+import ts from "typescript";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "../..");
@@ -69,6 +70,34 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
       });
       res.end(data);
     });
+    return;
+  }
+  // Dynamic transpile of shared bench core (single source of truth)
+  if (p === "/bench-core.js") {
+    try {
+      const tsPath = path.join(projectRoot, "src", "bench", "core.ts");
+      const src = fs.readFileSync(tsPath, "utf8");
+      const out = ts.transpileModule(src, {
+        compilerOptions: {
+          module: ts.ModuleKind.ESNext,
+          target: ts.ScriptTarget.ES2021,
+          sourceMap: false,
+          removeComments: false,
+          esModuleInterop: true,
+        },
+        fileName: "core.ts",
+        reportDiagnostics: false,
+      });
+      res.writeHead(200, {
+        "content-type": "text/javascript",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Embedder-Policy": "require-corp",
+        "Cross-Origin-Resource-Policy": "same-origin",
+      });
+      res.end(out.outputText);
+    } catch (e) {
+      res.writeHead(500).end(String(e));
+    }
     return;
   }
   // Serve assets/sql.json from project assets
