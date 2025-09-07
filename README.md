@@ -38,6 +38,14 @@ The table below is updated every time you run the benchmarks.
 
 Comment (AI):
 
+- Node roundup: better‑sqlite3 remains the clear leader on throughput and latency (tiny startup/open; inserts ≈30 ms; lookups ≈6–12 ms). node‑sqlite3 is still 4–6× slower on writes and lookups. @libsql/client (embedded) sits in the middle with higher startup/open (~19 ms) and inserts ≈80 ms.
+- Turso (Node, in‑memory): startup/open ≈10/8 ms; inserts ≈85 ms (close to @libsql/client, much faster than node‑sqlite3, slower than better‑sqlite3). Random lookups are notably slower (≈210 ms), while updates/deletes are moderate (≈8/7 ms). Good for simple write/update workloads but not ideal for lookup‑heavy paths.
+- Browser startup: sqlite3‑wasm and libsql‑client‑wasm take ≈260–330 ms to first query. pglite‑wasm takes ≈1.4–2.0 s due to larger WASM and engine bootstrap.
+- Browser persistence cost (OPFS): inserts are similar in memory vs OPFS, but random lookups on OPFS dominate (≈750–1000 ms) versus ≈45–55 ms in memory. That gap explains most “disk vs memory” differences in the browser rows.
+- libsql‑client‑wasm (OPFS): closely tracks sqlite3‑wasm (OPFS) on schema/bulk ops and shows similar lookup penalties. Use it when you want libSQL’s client ergonomics with embedded persistence.
+- pglite‑wasm: write and lookup phases remain orders of magnitude slower (insert ≈25–36 s; lookup ≈5–6 s). Full scans are fine (≈30–45 ms). It’s valuable for Postgres SQL/feature coverage rather than raw speed.
+- Practical picks: Node → better‑sqlite3 for performance; @libsql/client and Turso are solid middle options depending on API and deployment; PGlite only if you need Postgres semantics. Browser → sqlite3‑wasm (memory) for fastest reads; OPFS for durability with a known lookup penalty; libsql‑client‑wasm for similar durability with libSQL API; pglite‑wasm for Postgres features, not throughput.
+
 <!-- BENCH_COMMENT:END -->
 
 ## Running The Benchmarks
