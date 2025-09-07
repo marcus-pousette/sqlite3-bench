@@ -426,6 +426,14 @@ async function main() {
             return await runSqlite3WasmBenchmark(sqlite3, rows, storage, policy, fsForSqlite);
           }
           if (engine === 'libsql-client-wasm') return await runLibsqlClientWasmBenchmark(rows, storage, policy, 'opfs');
+          if (engine === 'turso-wasm') {
+            return await new Promise((resolve, reject) => {
+              const worker = new Worker('/workers/turso.worker.js', { type: 'module' });
+              worker.onmessage = (ev) => { const { ok, result, error } = ev.data || {}; worker.terminate(); ok ? resolve(result) : reject(new Error(error||'worker failed')); };
+              worker.onerror = (e) => { worker.terminate(); reject(e.error || new Error(String(e.message || 'worker error'))); };
+              worker.postMessage({ cmd: 'run', rows, SQL });
+            });
+          }
           if (engine === 'pglite-wasm') return await runPgliteWasmBenchmark(rows, storage, policy, runTimeoutMs, fsKind, allowFallback);
           throw new Error('Unknown engine selected');
         };

@@ -18,6 +18,7 @@ function parseArgs() {
     const [k, v] = a.includes("=") ? a.split("=", 2) : [a, "true"];
     args.set(k.replace(/^--/, ""), v);
   }
+  // Default excludes turso-wasm; include explicitly via --engines if desired
   const engines = (args.get("engines") || "sqlite3-wasm,libsql-client-wasm,pglite-wasm")
     .split(",")
     .map((s) => s.trim())
@@ -76,13 +77,14 @@ async function main() {
   await sleep(250);
 
   for (const engine of engines) {
-    const storages = engine === 'libsql-client-wasm' ? ["disk"] as const : ["memory","disk"] as const;
+    const storages = engine === 'libsql-client-wasm' ? ["disk"] as const : engine === 'turso-wasm' ? ["memory"] as const : ["memory","disk"] as const;
     for (const storage of storages) {
       // For disk: run fs variants by engine capabilities
       const fsModes =
         engine === 'pglite-wasm' && storage === 'disk' ? ['idb','opfs'] as const :
         engine === 'sqlite3-wasm' && storage === 'disk' ? ['opfs'] as const :
         engine === 'libsql-client-wasm' && storage === 'disk' ? ['opfs'] as const :
+        engine === 'turso-wasm' ? [undefined] as const :
         [undefined] as const;
       for (const fsKind of fsModes) {
         const extra = fsKind ? `&fs=${fsKind}&fallback=0` : '';

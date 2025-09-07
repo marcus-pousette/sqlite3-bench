@@ -56,6 +56,43 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
         res.writeHead(404).end("Not found");
         return;
       }
+      // Optional content rewrite for Turso WASI modules to make nested worker + runtime resolvable
+      let body = data;
+      const relNorm = rel.replace(/\\/g, '/');
+      if (relNorm === '@tursodatabase/database-wasm32-wasi/turso.wasi-browser.js') {
+        const txt = data.toString('utf8')
+          .replace(
+            /new URL\(['"]@tursodatabase\/database-wasm32-wasi\/wasi-worker-browser\.mjs['"],\s*import\.meta\.url\)/g,
+            "new URL('/vendor/@tursodatabase/database-wasm32-wasi/wasi-worker-browser.mjs', import.meta.url)"
+          )
+          .replace(
+            /from\s+['"]@napi-rs\/wasm-runtime['"]/g,
+            "from '/vendor/@napi-rs/wasm-runtime/runtime.js'"
+          );
+        body = Buffer.from(txt, 'utf8');
+      }
+      if (relNorm === '@tursodatabase/database-wasm32-wasi/wasi-worker-browser.mjs') {
+        const txt = data.toString('utf8')
+          .replace(
+            /from\s+['"]@napi-rs\/wasm-runtime['"]/g,
+            "from '/vendor/@napi-rs/wasm-runtime/runtime.js'"
+          );
+        body = Buffer.from(txt, 'utf8');
+      }
+      if (relNorm === '@napi-rs/wasm-runtime/runtime.js') {
+        const txt = data.toString('utf8')
+          .replace(/from\s+['"]@emnapi\/core['"]/g, "from '/vendor/@emnapi/core/dist/emnapi-core.mjs'")
+          .replace(/from\s+['"]@emnapi\/runtime['"]/g, "from '/vendor/@emnapi/runtime/dist/emnapi.mjs'")
+          .replace(/from\s+['"]@tybys\/wasm-util['"]/g, "from '/vendor/@tybys/wasm-util/dist/wasm-util.esm.js'")
+          .replace(/from\s+['"]@emnapi\/wasi-threads['"]/g, "from '/vendor/@emnapi/wasi-threads/dist/wasi-threads.mjs'");
+        body = Buffer.from(txt, 'utf8');
+      }
+      if (relNorm === '@emnapi/core/dist/emnapi-core.mjs') {
+        const txt = data.toString('utf8')
+          .replace(/from\s+['"]@emnapi\/wasi-threads['"]/g, "from '/vendor/@emnapi/wasi-threads/dist/wasi-threads.mjs'")
+          .replace(/export\s\*\sfrom\s+['"]@emnapi\/wasi-threads['"]/g, "export * from '/vendor/@emnapi/wasi-threads/dist/wasi-threads.mjs'");
+        body = Buffer.from(txt, 'utf8');
+      }
       const ext = path.extname(target);
       const type =
         ext === ".mjs" || ext === ".js" ? "text/javascript" :
@@ -68,7 +105,7 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
         "Cross-Origin-Embedder-Policy": "require-corp",
         "Cross-Origin-Resource-Policy": "same-origin",
       });
-      res.end(data);
+      res.end(body);
     });
     return;
   }

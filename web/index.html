@@ -10,8 +10,12 @@
           "@libsql/libsql-wasm-experimental": "/vendor/@libsql/client-wasm/node_modules/@libsql/libsql-wasm-experimental/index.mjs",
           "@libsql/core/api": "/vendor/@libsql/core/lib-esm/api.js",
           "@libsql/core/config": "/vendor/@libsql/core/lib-esm/config.js",
-          "@libsql/core/util": "/vendor/@libsql/core/lib-esm/util.js"
-        , "js-base64": "/vendor/js-base64/base64.mjs"
+          "@libsql/core/util": "/vendor/@libsql/core/lib-esm/util.js",
+          "js-base64": "/vendor/js-base64/base64.mjs",
+          "@napi-rs/wasm-runtime": "/vendor/@napi-rs/wasm-runtime/runtime.js",
+          "@emnapi/core": "/vendor/@emnapi/core/dist/emnapi-core.mjs",
+          "@emnapi/runtime": "/vendor/@emnapi/runtime/dist/emnapi.mjs",
+          "@tybys/wasm-util": "/vendor/@tybys/wasm-util/dist/wasm-util.esm.js"
         }
       }
     </script>
@@ -34,6 +38,7 @@
         <option value="sqlite3-wasm" selected>sqlite3-wasm (official)</option>
         <option value="libsql-client-wasm">libsql-client-wasm (embedded)</option>
         <option value="pglite-wasm">pglite (Postgres-in-WASM)</option>
+        
       </select>
       Rows: <input id="rows" type="number" min="100" step="100" value="5000" />
       <button id="run">Run benchmark</button>

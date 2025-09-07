@@ -4,6 +4,7 @@ import { performance } from "node:perf_hooks";
 import { betterSqlite3Adapter } from "./adapters/betterSqlite3.ts";
 import { nodeSqlite3Adapter } from "./adapters/nodeSqlite3.ts";
 import { libsqlAdapter } from "./adapters/libsql.ts";
+import { tursoAdapter } from "./adapters/turso.ts";
 import { pgliteAdapter } from "./adapters/pglite.ts";
 import { envInfo, formatMarkdownTable, updateReadmeTable, clearReadmeComment } from "./util.ts";
 // Load unified SQL definitions with types
@@ -64,9 +65,13 @@ async function benchOne(adapter: DBAdapter, dbPath: string, rows: number, storag
   metrics.startup = performance.now() - tStartup0;
 
   // schema + workload via shared core
-  const dialect: BenchDialect = adapter.id === 'pglite'
-    ? { schemaSql: `${sql.postgres.schema}\n${sql.postgres.truncate}`, queries: sql.queriesPg }
-    : { schemaSql: `${sql.sqlite.preamble}\n${sql.sqlite.schema}\n${sql.sqlite.truncate}`, queries: sql.queries };
+  const dialect: BenchDialect =
+    adapter.id === 'pglite'
+      ? { schemaSql: `${sql.postgres.schema}\n${sql.postgres.truncate}`, queries: sql.queriesPg }
+      : adapter.id === 'turso'
+        // Turso currently rejects certain PRAGMAs; run bare schema
+        ? { schemaSql: `${sql.sqlite.schema}\n${sql.sqlite.truncate}`, queries: sql.queries }
+        : { schemaSql: `${sql.sqlite.preamble}\n${sql.sqlite.schema}\n${sql.sqlite.truncate}`, queries: sql.queries };
   const core = await runAfterOpen(adapter, dialect, rows);
   metrics.schema = core.schema;
   metrics['insert xN'] = core['insert xN'];
@@ -92,7 +97,7 @@ async function benchOne(adapter: DBAdapter, dbPath: string, rows: number, storag
 }
 
 function adapters(): DBAdapter[] {
-  return [betterSqlite3Adapter(), nodeSqlite3Adapter(), libsqlAdapter(), pgliteAdapter()];
+  return [betterSqlite3Adapter(), nodeSqlite3Adapter(), libsqlAdapter(), pgliteAdapter(), tursoAdapter()];
 }
 
 async function main() {
@@ -110,7 +115,10 @@ async function main() {
   }
   const results: BenchResult[] = [];
   for (const a of selected) {
-    const storages: ("memory"|"disk")[] = (opts.storage === "both" ? ["memory","disk"] : [opts.storage as ("memory"|"disk")]);
+    // Turso adapter is in-memory only at present
+    const storages: ("memory"|"disk")[] = a.id === 'turso'
+      ? ["memory"]
+      : (opts.storage === "both" ? ["memory","disk"] : [opts.storage as ("memory"|"disk")]);
     for (const s of storages) {
       let dbPath: string;
       if (a.id === "libsql") {

@@ -9,8 +9,10 @@
     "serve:browser": "tsx src/web/serve.ts",
     "bench:browser": "tsx src/web/serve.ts --auto --once",
     "bench:browser:auto": "node --loader ts-node/esm src/web/headless.ts",
+    "bench:browser:fast": "node --loader ts-node/esm src/web/headless.ts --rows=200 --timeout=60000",
     "bench:reset": "node --loader ts-node/esm src/bench/reset.ts",
     "bench:all": "node --loader ts-node/esm src/bench/run-all.ts",
+    "bench:fast": "node --loader ts-node/esm src/bench/run-all.ts --rows=200 --timeout=60000 --engines=sqlite3-wasm,libsql-client-wasm,pglite-wasm",
     "bench:comment": "node --loader ts-node/esm src/bench/set-comment.ts",
     "bench:debug": "node --loader ts-node/esm src/bench/run-all.ts --rows=10 --timeout=10000"
   },
@@ -26,6 +28,8 @@
     "@electric-sql/pglite": "^0.3.7",
     "@libsql/client": "^0.15.14",
     "@libsql/client-wasm": "^0.15.14",
+    "@napi-rs/wasm-runtime": "^1.0.3",
+    "@tursodatabase/database": "^0.1.4",
     "better-sqlite3": "^12.2.0",
     "sqlite3": "^5.1.7"
   }

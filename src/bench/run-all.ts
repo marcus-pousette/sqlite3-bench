@@ -10,6 +10,8 @@ function parseArgs() {
   const rows = String(args.get('rows') ?? 5000);
   const port = String(args.get('port') ?? 8787);
   const storage = String(args.get('storage') ?? 'both'); // for node
+  // Default excludes turso-wasm (browser) due to WASI/threads bootstrap requirements.
+  // It can be run manually via the UI or by passing --engines=turso-wasm.
   const engines = String(args.get('engines') ?? 'sqlite3-wasm,libsql-client-wasm,pglite-wasm');
   const timeout = String(args.get('timeout') ?? 600000);
   const browserWorkers = String(args.get('browserWorkers') ?? 'prefer');
