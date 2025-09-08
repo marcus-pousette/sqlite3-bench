@@ -109,7 +109,7 @@ export async function runBench(adapter: any, dialect: BenchDialect, rows: number
 
 export async function runSqliteBench(adapter: any, SQL: any, rows: number) {
   const dialect: BenchDialect = {
-    schemaSql: `${SQL.sqlite.schema}\n${SQL.sqlite.truncate}`,
+    schemaSql: `${SQL.sqlite.preamble ? SQL.sqlite.preamble + "\n" : ''}${SQL.sqlite.schema}\n${SQL.sqlite.truncate}`,
     queries: SQL.queries,
   };
   return runBench(adapter, dialect, rows);

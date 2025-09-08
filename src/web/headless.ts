@@ -66,7 +66,19 @@ async function runWithPuppeteer(pp: any, url: string, maxWaitMs = 600_000, heade
 
 async function main() {
   const { engines, rows, port, timeout, workers, headed } = parseArgs();
-  const server = startServer(port, false, false);
+  // Start server; if port is busy, try successive ports
+  let server;
+  let bindPort = port;
+  for (let i = 0; i < 3; i++) {
+    try {
+      server = startServer(bindPort, false, false);
+      break;
+    } catch (e: any) {
+      if (e?.code === 'EADDRINUSE') { bindPort++; continue; }
+      throw e;
+    }
+  }
+  if (!server) throw new Error('Failed to bind HTTP server');
   const { type, mod } = await loadBrowser();
   if (type === "none") {
     console.error("No headless browser found. Install 'playwright' or 'puppeteer'.");
@@ -88,7 +100,7 @@ async function main() {
         [undefined] as const;
       for (const fsKind of fsModes) {
         const extra = fsKind ? `&fs=${fsKind}&fallback=0` : '';
-        const url = `http://localhost:${port}/?auto=1&engine=${encodeURIComponent(engine)}&rows=${rows}&storage=${storage}&timeout=${timeout}&workers=${encodeURIComponent(workers)}${extra}`;
+        const url = `http://localhost:${bindPort}/?auto=1&engine=${encodeURIComponent(engine)}&rows=${rows}&storage=${storage}&timeout=${timeout}&workers=${encodeURIComponent(workers)}${extra}`;
         let status: string | undefined;
         try {
           console.log(`[browser ${engine} ${storage}${fsKind?'-'+fsKind:''}] starting (timeout=${timeout}ms) -> ${url}`);

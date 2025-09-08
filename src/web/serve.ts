@@ -137,6 +137,34 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
     }
     return;
   }
+  // Dynamic transpile of vector bench core
+  if (p === "/bench-core-vector.js") {
+    try {
+      const tsPath = path.join(projectRoot, "src", "bench", "core-vector.ts");
+      const src = fs.readFileSync(tsPath, "utf8");
+      const out = ts.transpileModule(src, {
+        compilerOptions: {
+          module: ts.ModuleKind.ESNext,
+          target: ts.ScriptTarget.ES2021,
+          sourceMap: false,
+          removeComments: false,
+          esModuleInterop: true,
+        },
+        fileName: "core-vector.ts",
+        reportDiagnostics: false,
+      });
+      res.writeHead(200, {
+        "content-type": "text/javascript",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Embedder-Policy": "require-corp",
+        "Cross-Origin-Resource-Policy": "same-origin",
+      });
+      res.end(out.outputText);
+    } catch (e) {
+      res.writeHead(500).end(String(e));
+    }
+    return;
+  }
   // Serve assets/sql.json from project assets
   if (p === "/assets/sql.json") {
     const assetPath = path.join(projectRoot, "assets", "sql.json");
@@ -175,16 +203,30 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
   });
 }
 
+function isVectorResult(r: BrowserResult) {
+  return r && r.metrics && Object.prototype.hasOwnProperty.call(r.metrics, 'knn@k');
+}
+
 async function writeBrowserResults(results: BrowserResult[]) {
   await fs.promises.mkdir(resultsDir, { recursive: true });
   const out = path.join(resultsDir, "browser-latest.json");
+  const outVec = path.join(resultsDir, "browser-vector-latest.json");
+  const incomingVec = results.filter(isVectorResult);
+  const incomingRel = results.filter((r) => !isVectorResult(r));
   let existing: BrowserResult[] = [];
+  let existingVec: BrowserResult[] = [];
   try {
     const cur = await fs.promises.readFile(out, "utf8");
     existing = JSON.parse(cur);
   } catch {}
-  const combined = [...existing, ...results];
+  try {
+    const curV = await fs.promises.readFile(outVec, "utf8");
+    existingVec = JSON.parse(curV);
+  } catch {}
+  const combined = [...existing, ...incomingRel];
+  const combinedVec = [...existingVec, ...incomingVec];
   await fs.promises.writeFile(out, JSON.stringify(combined, null, 2));
+  await fs.promises.writeFile(outVec, JSON.stringify(combinedVec, null, 2));
 
   // Try to merge with node results if available, else just browser
   let node: BenchResult[] = [];
@@ -219,6 +261,37 @@ async function writeBrowserResults(results: BrowserResult[]) {
   const table = rows.length ? formatMarkdownTable(rows as any) : "No results.";
   updateReadmeTable(table);
   clearReadmeComment();
+
+  // Vector section
+  let browserVec: BrowserResult[] = [];
+  try {
+    const bv = await fs.promises.readFile(outVec, 'utf8');
+    browserVec = JSON.parse(bv);
+  } catch {}
+  let nodeVec: BrowserResult[] = [];
+  try {
+    const nv = await fs.promises.readFile(path.join(resultsDir, 'node-vector-latest.json'), 'utf8');
+    nodeVec = JSON.parse(nv);
+  } catch {}
+  const vecRows = [...nodeVec, ...browserVec].map((r) => ({
+    implementation: r.implementation,
+  platform: (r.environment as any)?.userAgent ? 'browser' : 'node',
+    storage: (r as any).storage ?? '-',
+    version: r.packageVersion ?? '-',
+    engine: r.engineVersion ?? '-',
+    rows: r.rows,
+    dim: (r as any).dim ?? '-',
+    k: (r as any).k ?? '-',
+    repeats: (r as any).repeats ?? '-',
+    startup: (r.metrics as any).startup?.toFixed ? (r.metrics as any).startup.toFixed(1) : ((r.metrics as any).startup != null ? String((r.metrics as any).startup) : '-'),
+    schema: (r.metrics as any).schema?.toFixed ? (r.metrics as any).schema.toFixed(1) : String((r.metrics as any).schema),
+    "insert xN": (r.metrics as any)["insert xN"].toFixed ? (r.metrics as any)["insert xN"].toFixed(1) : String((r.metrics as any)["insert xN"]),
+    "knn@k": (r.metrics as any)["knn@k"].toFixed ? (r.metrics as any)["knn@k"].toFixed(1) : String((r.metrics as any)["knn@k"]),
+    "knn@k (filtered)": (r.metrics as any)["knn@k (filtered)"].toFixed ? (r.metrics as any)["knn@k (filtered)"].toFixed(1) : String((r.metrics as any)["knn@k (filtered)"]),
+    "knn@k xM": (r.metrics as any)["knn@k xM"].toFixed ? (r.metrics as any)["knn@k xM"].toFixed(1) : String((r.metrics as any)["knn@k xM"]),
+  }));
+  const vecTable = vecRows.length ? formatMarkdownTable(vecRows as any) : 'No vector results yet.';
+  updateReadmeTable(vecTable, '<!-- VEC_TABLE:START -->', '<!-- VEC_TABLE:END -->');
 }
 
 export function startServer(port: number, auto: boolean, once: boolean) {

@@ -31,20 +31,88 @@ The table below is updated every time you run the benchmarks.
 | pglite-wasm | browser | memory | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 3131.3 | 127.6 | 67.0 | 30761.5 | 40.3 | 6009.1 | 3619.9 | 2775.3 |
 | pglite-wasm | browser | disk-idb | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 1465.2 | 45.7 | 34.8 | 25315.9 | 32.8 | 5074.9 | 2274.4 | 2926.0 |
 | pglite-wasm | browser | disk-opfs | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 5000 | 1560.0 | 53.2 | 37.6 | 30307.1 | 35.2 | 5677.3 | 2773.9 | 2274.4 |
+| sqlite3-wasm | browser | memory | - | 3.44.0 | 200 | 260.0 | 171.2 | 39.9 | 34.6 | 5.3 | 19.3 | 2.6 | 1.3 |
+| sqlite3-wasm | browser | disk-opfs | - | 3.44.0 | 200 | 321.8 | 320.9 | 54.9 | 44.9 | 9.2 | 258.7 | 12.6 | 9.8 |
+| libsql-client-wasm | browser | disk | - | 3.44.0 | 200 | 293.0 | 292.1 | 56.0 | 39.2 | 6.5 | 266.9 | 12.2 | 10.2 |
+| pglite-wasm | browser | memory | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 200 | 1659.6 | 46.4 | 38.4 | 1144.1 | 8.3 | 1102.8 | 115.0 | 112.4 |
+| pglite-wasm | browser | disk-idb | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 200 | 1390.9 | 45.7 | 33.5 | 1095.3 | 7.6 | 995.7 | 107.3 | 105.9 |
+| pglite-wasm | browser | disk-opfs | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 200 | 1689.6 | 44.0 | 42.7 | 1259.7 | 8.3 | 1077.8 | 121.1 | 129.8 |
+| pglite-wasm | browser | disk-opfs | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 200 | 1334.4 | 47.6 | 52.2 | 1271.7 | 9.3 | 1247.1 | 109.1 | 105.9 |
+| sqlite3-wasm | browser | memory | - | 3.44.0 | 200 | 276.8 | 190.2 | 46.8 | 33.3 | 6.5 | 20.5 | 2.6 | 1.3 |
+| sqlite3-wasm | browser | disk-opfs | - | 3.44.0 | 200 | 335.9 | 334.7 | 67.0 | 38.9 | 7.2 | 226.5 | 12.2 | 9.7 |
+| libsql-client-wasm | browser | disk | - | 3.44.0 | 200 | 292.4 | 291.6 | 47.7 | 30.7 | 6.1 | 174.5 | 11.5 | 9.0 |
+| pglite-wasm | browser | memory | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 200 | 1358.4 | 39.5 | 35.1 | 1157.6 | 7.6 | 1127.1 | 123.5 | 122.2 |
+| pglite-wasm | browser | disk-idb | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 200 | 1378.8 | 43.2 | 36.4 | 1164.3 | 7.2 | 1187.0 | 124.1 | 122.2 |
+| pglite-wasm | browser | disk-opfs | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 200 | 2018.4 | 46.7 | 42.4 | 1309.8 | 8.6 | 1209.6 | 148.9 | 133.1 |
+| pglite-wasm | browser | disk-opfs | - | PostgreSQL 17.5 on x86_64-pc-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit | 200 | 1511.8 | 48.1 | 48.1 | 1236.7 | 8.3 | 1266.6 | 138.7 | 126.5 |
 
 <!-- BENCH_TABLE:END -->
+
+## Vector Results
+
+<!-- VEC_TABLE:START -->
+
+| implementation | platform | storage | version | engine | rows | dim | k | repeats | startup | schema | insert xN | knn@k | knn@k (filtered) | knn@k xM |
+| - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
+| libsql-vector-node | node | disk | - | - | 50 | 8 | 3 | 2 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 50 | 8 | 3 | 2 | 415.5 | 112.1 | 37.9 | 12.7 | 1.2 | 1.9 |
+| libsql-vector-node | node | disk | - | - | 50 | 8 | 3 | 2 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 50 | 8 | 3 | 2 | 173.3 | 3.8 | 0.0 | 9.8 | 1.4 | 2.5 |
+| libsql-vector-node | node | disk | - | - | 50 | 8 | 3 | 2 | - |  |  |  |  |  |
+| libsql-vector-node | node | disk | - | - | 200 | 32 | 10 | 5 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 200 | 32 | 10 | 5 | 242.4 | 6.4 | 135.3 | 9.0 | 1.3 | 15.7 |
+| libsql-vector-node | node | disk | - | - | 200 | 32 | 10 | 5 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 60 | 16 | 5 | 3 | 199.1 | 3.6 | 0.0 | 11.5 | 1.9 | 12.6 |
+| libsql-vector-node | node | disk | - | - | 60 | 16 | 5 | 3 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 80 | 16 | 5 | 3 | 522.3 | 11.9 | 0.0 | 28.2 | 2.9 | 10.0 |
+| libsql-vector-node | node | disk | - | - | 80 | 16 | 5 | 3 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 10 | 8 | 3 | 1 | 202.1 | 4.8 | 0.0 | 13.4 | 2.0 | 6.6 |
+| libsql-vector-node | node | disk | - | - | 10 | 8 | 3 | 1 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 10 | 8 | 3 | 1 | 179.4 | 3.3 | 0.0 | 11.6 | 2.0 | 3.9 |
+| libsql-vector-node | node | disk | - | - | 10 | 8 | 3 | 1 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 20 | 8 | 3 | 2 | 199.3 | 4.1 | 0.0 | 11.9 | 1.8 | 8.5 |
+| libsql-vector-node | node | disk | - | - | 20 | 8 | 3 | 2 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 20 | 8 | 3 | 2 | 197.0 | 5.8 | 0.0 | 10.5 | 1.7 | 8.9 |
+| libsql-vector-node | node | disk | - | - | 20 | 8 | 3 | 2 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 10 | 8 | 3 | 1 | 191.7 | 4.4 | 0.0 | 11.3 | 1.5 | 4.2 |
+| libsql-vector-node | node | disk | - | - | 10 | 8 | 3 | 1 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 10 | 8 | 3 | 1 | 209.0 | 5.7 | 0.0 | 12.8 | 2.9 | 6.2 |
+| libsql-vector-node | node | disk | - | - | 10 | 8 | 3 | 1 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 5000 | 128 | 10 | 10 | 343.0 | 4.1 | 3425.6 | 260.7 | 4.6 | 2321.7 |
+| libsql-vector-node | node | disk | - | - | 5000 | 128 | 10 | 10 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 5000 | 128 | 10 | 10 | 234.3 | 8.8 | 0.0 | 247.0 | 4.2 | 2320.4 |
+| libsql-vector-node | node | disk | - | - | 5000 | 128 | 10 | 10 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 50 | 8 | 3 | 2 | 201.6 | 3.8 | 0.0 | 201.6 | 2.9 | 304.3 |
+| libsql-vector-node | node | disk | - | - | 50 | 8 | 3 | 2 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 50 | 8 | 3 | 2 | 235.3 | 8.6 | 0.0 | 176.8 | 3.2 | 308.0 |
+| libsql-vector-node | node | disk | - | - | 50 | 8 | 3 | 2 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 50 | 8 | 3 | 2 | 215.3 | 5.2 | 0.0 | 173.2 | 3.4 | 304.2 |
+| libsql-vector-node | node | disk | - | - | 50 | 8 | 3 | 2 | - |  |  |  |  |  |
+| pglite-vector-node | node | disk | - |  | 10 | 8 | 3 | 1 | 219.2 | 5.7 | 0.0 | 182.9 | 3.0 | 270.7 |
+| libsql-vector-node | node | disk | - | - | 10 | 8 | 3 | 1 | - |  |  |  |  |  |
+| pglite-vec-wasm | browser | disk-opfs | - | - | 200 | 32 | 10 | 5 | 1607.2 | 12.9 | 270.5 | 8.8 | 2.1 | 25.0 |
+| pglite-vec-wasm | browser | disk-opfs | - | - | 80 | 16 | 5 | 3 | 2118.8 | 14.3 | 128.7 | 4.0 | 1.4 | 7.3 |
+| pglite-vec-wasm | browser | disk-opfs | - | - | 10 | 8 | 3 | 1 | 1373.4 | 13.2 | 22.5 | 3.9 | 2.6 | 1.8 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 20 | 8 | 3 | 2 | 313.7 | 502.3 | 17.0 | 5.0 | 1.3 | 4.1 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 20 | 8 | 3 | 2 | 314.2 | 38.8 | 16.6 | 5.5 | 1.5 | 3.7 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 10 | 8 | 3 | 1 | 301.7 | 38.9 | 11.4 | 4.7 | 1.0 | 1.1 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 10 | 8 | 3 | 1 | 343.7 | 51.8 | 12.9 | 5.2 | 1.0 | 1.1 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 5000 | 128 | 10 | 10 | 402.0 | 40.8 | 2487.3 | 386.8 | 78.1 | 3970.7 |
+| pglite-vec-wasm | browser | disk-opfs | - | - | 5000 | 128 | 10 | 10 | 2734.2 | 14.7 | 7153.3 | 312.5 | 6.0 | 2177.6 |
+| pglite-vec-wasm | browser | disk-opfs | - | - | 5000 | 128 | 10 | 10 | 1550.2 | 12.5 | 6991.9 | 210.4 | 5.7 | 2336.5 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 50 | 8 | 3 | 2 | 302.7 | 37.7 | 24.0 | 6.8 | 1.6 | 6.1 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 50 | 8 | 3 | 2 | 356.6 | 56.9 | 29.8 | 7.4 | 2.2 | 7.2 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 50 | 8 | 3 | 2 | 294.6 | 35.5 | 26.3 | 7.1 | 2.0 | 9.1 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 50 | 8 | 3 | 2 | 336.2 | 41.8 | 25.3 | 7.2 | 2.0 | 6.6 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 50 | 8 | 3 | 2 | 259.2 | 0.8 | 0.0 | 17.7 | 3.1 | 7.2 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 50 | 8 | 3 | 2 | 322.8 | 49.7 | 25.9 | 9.9 | 1.8 | 8.3 |
+| sqlite3-vec-wasm | browser | disk-opfs | - | - | 20 | 8 | 3 | 1 | 302.3 | 36.3 | 15.1 | 5.5 | 1.1 | 1.6 |
+
+<!-- VEC_TABLE:END -->
 
 <!-- BENCH_COMMENT:START -->
 
 Comment (AI):
-
-- Node roundup: better‑sqlite3 remains the clear leader on throughput and latency (tiny startup/open; inserts ≈30 ms; lookups ≈6–12 ms). node‑sqlite3 is still 4–6× slower on writes and lookups. @libsql/client (embedded) sits in the middle with higher startup/open (~19 ms) and inserts ≈80 ms.
-- Turso (Node, in‑memory): startup/open ≈10/8 ms; inserts ≈85 ms (close to @libsql/client, much faster than node‑sqlite3, slower than better‑sqlite3). Random lookups are notably slower (≈210 ms), while updates/deletes are moderate (≈8/7 ms). Good for simple write/update workloads but not ideal for lookup‑heavy paths.
-- Browser startup: sqlite3‑wasm and libsql‑client‑wasm take ≈260–330 ms to first query. pglite‑wasm takes ≈1.4–2.0 s due to larger WASM and engine bootstrap.
-- Browser persistence cost (OPFS): inserts are similar in memory vs OPFS, but random lookups on OPFS dominate (≈750–1000 ms) versus ≈45–55 ms in memory. That gap explains most “disk vs memory” differences in the browser rows.
-- libsql‑client‑wasm (OPFS): closely tracks sqlite3‑wasm (OPFS) on schema/bulk ops and shows similar lookup penalties. Use it when you want libSQL’s client ergonomics with embedded persistence.
-- pglite‑wasm: write and lookup phases remain orders of magnitude slower (insert ≈25–36 s; lookup ≈5–6 s). Full scans are fine (≈30–45 ms). It’s valuable for Postgres SQL/feature coverage rather than raw speed.
-- Practical picks: Node → better‑sqlite3 for performance; @libsql/client and Turso are solid middle options depending on API and deployment; PGlite only if you need Postgres semantics. Browser → sqlite3‑wasm (memory) for fastest reads; OPFS for durability with a known lookup penalty; libsql‑client‑wasm for similar durability with libSQL API; pglite‑wasm for Postgres features, not throughput.
 
 <!-- BENCH_COMMENT:END -->
 

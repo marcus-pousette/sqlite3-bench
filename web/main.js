@@ -104,7 +104,7 @@ async function runLibsqlClientWasmInline(rows, storage, fsKind = 'opfs') {
     const stmts = sql.split(';').map(s => s.trim()).filter(Boolean);
     for (const s of stmts) await client.execute(s);
   }
-  const schemaSQL = `${SQL.sqlite.schema};\n${SQL.sqlite.truncate};`;
+  const schemaSQL = `${SQL.sqlite.preamble ? SQL.sqlite.preamble + ';\n' : ''}${SQL.sqlite.schema};\n${SQL.sqlite.truncate};`;
   const t1 = performance.now();
   await execMulti(schemaSQL);
   const schema = performance.now() - t1;
@@ -396,6 +396,21 @@ async function runPgliteWasmBenchmark(rows, storage, policy, initTimeoutMs, fsKi
   return result;
 }
 
+async function runSqliteVecBenchmark(rows, dim = 128, k = 10, repeats = 10) {
+  return await new Promise((resolve, reject) => {
+    const worker = new Worker('/workers/sqlitevec.worker.js', { type: 'module' });
+    const onMsg = (ev) => {
+      const { ok, result, error } = ev.data || {};
+      worker.terminate();
+      if (ok) resolve(result);
+      else reject(new Error(error || 'worker failed'));
+    };
+    worker.onmessage = onMsg;
+    worker.onerror = (e) => { worker.terminate(); reject(e.error || new Error(String(e.message || 'worker error'))); };
+    worker.postMessage({ cmd: 'run', rows, dim, k, repeats });
+  });
+}
+
 async function main() {
   const params = new URLSearchParams(location.search);
   const auto = params.get("auto") === "1";
@@ -413,6 +428,9 @@ async function main() {
       out.textContent = "";
       collectedLogs.length = 0;
       const rows = Number($("#rows").value) || 5000;
+      const vecDim = Number($("#vec-dim")?.value || 128);
+      const vecK = Number($("#vec-k")?.value || 10);
+      const vecRepeats = Number($("#vec-repeats")?.value || 10);
       const storage = (params.get('storage') || 'memory');
       statusEl.textContent = `Running benchmark with ${rows} rows…`;
       try {
@@ -435,6 +453,15 @@ async function main() {
             });
           }
           if (engine === 'pglite-wasm') return await runPgliteWasmBenchmark(rows, storage, policy, runTimeoutMs, fsKind, allowFallback);
+          if (engine === 'sqlite3-vec-wasm') return await runSqliteVecBenchmark(rows, vecDim, vecK, vecRepeats);
+          if (engine === 'pglite-vec-wasm') {
+            return await new Promise((resolve, reject) => {
+              const worker = new Worker('/workers/pglite-vec.worker.js', { type: 'module' });
+              worker.onmessage = (ev) => { const { ok, result, error } = ev.data || {}; worker.terminate(); ok ? resolve(result) : reject(new Error(error||'worker failed')); };
+              worker.onerror = (e) => { worker.terminate(); reject(e.error || new Error(String(e.message || 'worker error'))); };
+              worker.postMessage({ cmd: 'run', rows, dim: vecDim, k: vecK, repeats: vecRepeats });
+            });
+          }
           throw new Error('Unknown engine selected');
         };
         let timer;
@@ -443,21 +470,41 @@ async function main() {
         });
         const r = await Promise.race([runEngine(), watchdog]);
         clearTimeout(timer);
-        const table = mdTable([
-          {
-            implementation: r.implementation,
-            version: r.packageVersion ?? "-",
-            engine: r.engineVersion ?? "-",
-            rows: r.rows,
-            open: r.metrics.open.toFixed(1),
-            schema: r.metrics.schema.toFixed(1),
-            "insert xN": r.metrics["insert xN"].toFixed(1),
-            "select-all": r.metrics["select-all"].toFixed(1),
-            "select-lookup": r.metrics["select-lookup"].toFixed(1),
-            "update xN": r.metrics["update xN"].toFixed(1),
-            "delete xN": r.metrics["delete xN"].toFixed(1),
-          },
-        ]);
+        let table;
+        if (r && r.metrics && Object.prototype.hasOwnProperty.call(r.metrics, 'knn@k')) {
+          table = mdTable([
+            {
+              implementation: r.implementation,
+              version: r.packageVersion ?? "-",
+              engine: r.engineVersion ?? "-",
+              rows: r.rows,
+              dim: params.get('dim') || String(vecDim),
+              k: params.get('k') || String(vecK),
+              repeats: params.get('repeats') || String(vecRepeats),
+              schema: r.metrics.schema.toFixed ? r.metrics.schema.toFixed(1) : String(r.metrics.schema),
+              "insert xN": r.metrics["insert xN"].toFixed ? r.metrics["insert xN"].toFixed(1) : String(r.metrics["insert xN"]),
+              "knn@k": r.metrics["knn@k"].toFixed ? r.metrics["knn@k"].toFixed(1) : String(r.metrics["knn@k"]),
+              "knn@k (filtered)": r.metrics["knn@k (filtered)"].toFixed ? r.metrics["knn@k (filtered)"].toFixed(1) : String(r.metrics["knn@k (filtered)"]),
+              "knn@k xM": r.metrics["knn@k xM"].toFixed ? r.metrics["knn@k xM"].toFixed(1) : String(r.metrics["knn@k xM"]),
+            },
+          ]);
+        } else {
+          table = mdTable([
+            {
+              implementation: r.implementation,
+              version: r.packageVersion ?? "-",
+              engine: r.engineVersion ?? "-",
+              rows: r.rows,
+              open: r.metrics.open.toFixed(1),
+              schema: r.metrics.schema.toFixed(1),
+              "insert xN": r.metrics["insert xN"].toFixed(1),
+              "select-all": r.metrics["select-all"].toFixed(1),
+              "select-lookup": r.metrics["select-lookup"].toFixed(1),
+              "update xN": r.metrics["update xN"].toFixed(1),
+              "delete xN": r.metrics["delete xN"].toFixed(1),
+            },
+          ]);
+        }
         log(table);
         await postLogs({ level: 'info', logs: collectedLogs.map((l) => l.msg) });
         const post = await postResults(r);
@@ -479,6 +526,12 @@ async function main() {
       const input = document.querySelector('#rows');
       if (input) input.value = rowsParam;
     }
+    const dimParam = params.get('dim');
+    if (dimParam) { const input = document.querySelector('#vec-dim'); if (input) input.value = dimParam; }
+    const kParam = params.get('k');
+    if (kParam) { const input = document.querySelector('#vec-k'); if (input) input.value = kParam; }
+    const repParam = params.get('repeats');
+    if (repParam) { const input = document.querySelector('#vec-repeats'); if (input) input.value = repParam; }
 
     copyBtn.onclick = () => {
       const text = out.textContent.trim();
@@ -486,6 +539,16 @@ async function main() {
         statusEl.textContent = "Copied markdown to clipboard.";
       });
     };
+    // Show/hide vector options based on engine selection
+    const engineSelect = document.querySelector('#engine');
+    const vecPanel = document.querySelector('.vector-opts');
+    function updateVecPanel() {
+      const val = engineSelect?.value;
+      if (vecPanel) vecPanel.style.display = (val === 'sqlite3-vec-wasm' || val === 'pglite-vec-wasm') ? 'inline-block' : 'none';
+    }
+    engineSelect?.addEventListener('change', updateVecPanel);
+    updateVecPanel();
+
     if (auto) {
       $("#run").click();
     }

@@ -14,7 +14,8 @@
     "bench:all": "node --loader ts-node/esm src/bench/run-all.ts",
     "bench:fast": "node --loader ts-node/esm src/bench/run-all.ts --rows=200 --timeout=60000 --engines=sqlite3-wasm,libsql-client-wasm,pglite-wasm",
     "bench:comment": "node --loader ts-node/esm src/bench/set-comment.ts",
-    "bench:debug": "node --loader ts-node/esm src/bench/run-all.ts --rows=10 --timeout=10000"
+    "bench:debug": "node --loader ts-node/esm src/bench/run-all.ts --rows=10 --timeout=10000",
+    "bench:vector": "tsx src/bench/run-vector.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
@@ -25,6 +26,7 @@
     "typescript": "^5.6.3"
   },
   "dependencies": {
+    "@dao-xyz/sqlite3-vec": "^0.0.19",
     "@electric-sql/pglite": "^0.3.7",
     "@libsql/client": "^0.15.14",
     "@libsql/client-wasm": "^0.15.14",
